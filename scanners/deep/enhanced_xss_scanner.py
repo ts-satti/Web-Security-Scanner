@@ -11,7 +11,7 @@ All payloads are used responsibly in controlled security assessments.
 # flake8: noqa: S108, S105
 # bandit: skip=B105,B106,B107,B608
 # pylint: disable=all
-
+    
 import time
 import re
 import base64

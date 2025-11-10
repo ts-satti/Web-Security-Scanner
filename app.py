@@ -54,14 +54,32 @@ def create_app(environment='development'):
     @app.route('/dashboard')
     @login_required
     def dashboard():
-        # Increase limit so the UI scrollbar can show more scan history locally
-        scans = Scan.query.filter(Scan.user_id == current_user.id, Scan.status != 'discarded').order_by(Scan.created_at.desc()).limit(100).all()
+        # Get ALL scans for accurate statistics calculation
+        all_scans = Scan.query.filter(Scan.user_id == current_user.id, Scan.status != 'discarded').all()
         
-        # Calculate statistics
-        total_scans = len(scans)
-        completed_scans = [s for s in scans if s.status == 'completed']
-        active_scans = [s for s in scans if s.status == 'running']
-        total_vulnerabilities = sum(s.vulnerabilities_count or 0 for s in scans)
+        # Calculate statistics from ALL scans
+        total_scans = len(all_scans)
+        completed_scans = [s for s in all_scans if s.status == 'completed']
+        active_scans = [s for s in all_scans if s.status == 'running']
+        total_vulnerabilities = sum(s.vulnerabilities_count or 0 for s in all_scans)
+        
+        # Calculate vulnerabilities by severity
+        high_vulns = 0
+        medium_vulns = 0
+        low_vulns = 0
+
+        for scan in all_scans:
+            if scan.status == 'completed' and scan.results:
+                results = scan.get_results()
+                vulnerabilities = results.get('vulnerabilities', [])
+                for vuln in vulnerabilities:
+                    risk_level = vuln.get('risk_level', '')
+                    if risk_level == 'High':
+                        high_vulns += 1
+                    elif risk_level == 'Medium':
+                        medium_vulns += 1
+                    elif risk_level == 'Low':
+                        low_vulns += 1
         
         # Calculate success rate
         success_rate = round((len(completed_scans) / total_scans * 100)) if total_scans > 0 else 0
@@ -74,11 +92,17 @@ def create_app(environment='development'):
             'completed_scans': len(completed_scans),
             'active_scans': len(active_scans),
             'total_vulnerabilities': total_vulnerabilities,
+            'high_vulnerabilities': high_vulns,
+            'medium_vulnerabilities': medium_vulns,
+            'low_vulnerabilities': low_vulns,
             'success_rate': success_rate,
             'avg_vulnerabilities': avg_vulns
         }
         
-        return render_template('dashboard.html', scans=scans, stats=stats)
+        # Get all scans ordered by most recent first (no limit for scrollable table)
+        recent_scans = Scan.query.filter(Scan.user_id == current_user.id, Scan.status != 'discarded').order_by(Scan.created_at.desc()).all()
+        
+        return render_template('dashboard.html', scans=recent_scans, stats=stats)
 
     @app.route('/scans')
     @login_required
@@ -106,6 +130,55 @@ def create_app(environment='development'):
             for s in scans
         ]
         return jsonify({'scans': scans_data})
+
+
+    @app.route('/dashboard-stats')
+    @login_required
+    def dashboard_stats():
+        """Return aggregated statistics for the logged-in user's dashboard.
+
+        This endpoint intentionally does not limit results so it returns accurate
+        totals even when the user has more than 100 scans.
+        """
+        scans = Scan.query.filter(Scan.user_id == current_user.id, Scan.status != 'discarded').all()
+
+        total_scans = len(scans)
+        completed_scans = sum(1 for s in scans if s.status == 'completed')
+        active_scans = sum(1 for s in scans if s.status == 'running')
+        total_vulnerabilities = sum((s.vulnerabilities_count or 0) for s in scans)
+
+        # Calculate vulnerabilities by severity
+        high_vulns = 0
+        medium_vulns = 0
+        low_vulns = 0
+
+        for scan in scans:
+            if scan.status == 'completed' and scan.results:
+                results = scan.get_results()
+                vulnerabilities = results.get('vulnerabilities', [])
+                for vuln in vulnerabilities:
+                    risk_level = vuln.get('risk_level', '')
+                    if risk_level == 'High':
+                        high_vulns += 1
+                    elif risk_level == 'Medium':
+                        medium_vulns += 1
+                    elif risk_level == 'Low':
+                        low_vulns += 1
+
+        success_rate = round((completed_scans / total_scans * 100)) if total_scans > 0 else 0
+        avg_vulns = round((total_vulnerabilities / completed_scans), 1) if completed_scans > 0 else 0
+
+        return jsonify({
+            'total_scans': total_scans,
+            'completed_scans': completed_scans,
+            'active_scans': active_scans,
+            'total_vulnerabilities': total_vulnerabilities,
+            'high_vulnerabilities': high_vulns,
+            'medium_vulnerabilities': medium_vulns,
+            'low_vulnerabilities': low_vulns,
+            'success_rate': success_rate,
+            'avg_vulnerabilities': avg_vulns
+        })
     
     @app.route('/scan', methods=['POST'])
     @login_required
@@ -166,7 +239,6 @@ def create_app(environment='development'):
             'message': 'Scan started successfully',
             'target_url': sanitized_url
         })
-    
     @app.route('/scan-progress/<int:scan_id>')
     @login_required
     def get_scan_progress(scan_id):

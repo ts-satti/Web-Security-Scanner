@@ -407,6 +407,11 @@ function startScan(form) {
                 stopBtn.disabled = false;
             }
             
+            // Refresh dashboard stats to reflect new scan
+            if (typeof updateDashboardStats === 'function') {
+                updateDashboardStats();
+            }
+            
             monitorProgress(data.scan_id);
         } else {
             throw new Error(data.error || 'Failed to start scan');
@@ -1489,9 +1494,73 @@ function deleteScan(scanId) {
         }
 
         addToActivityLog('🗑️ Scan deleted successfully', 'success');
+        // Refresh dashboard stats to reflect deletion
+        if (typeof updateDashboardStats === 'function') {
+            updateDashboardStats();
+        }
     })
     .catch(error => {
         console.error('Delete error:', error);
         addToActivityLog('❌ Error deleting scan: ' + error.message, 'error');
     });
+}
+
+// Fetch aggregated dashboard stats and update DOM (used after delete)
+function updateDashboardStats() {
+    fetch('/dashboard-stats', { credentials: 'same-origin' })
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to fetch dashboard stats');
+            return response.json();
+        })
+        .then(data => {
+            const total = data.total_scans || 0;
+            const completed = data.completed_scans || 0;
+            const active = data.active_scans || 0;
+            const totalVulns = data.total_vulnerabilities || 0;
+            const highVulns = data.high_vulnerabilities || 0;
+            const mediumVulns = data.medium_vulnerabilities || 0;
+            const lowVulns = data.low_vulnerabilities || 0;
+            const successRate = data.success_rate || 0;
+            const avg = data.avg_vulnerabilities || 0;
+
+            const elTotal = document.getElementById('totalScansCount');
+            if (elTotal) elTotal.textContent = total;
+            const elCompleted = document.getElementById('completedScansCount');
+            if (elCompleted) elCompleted.textContent = completed;
+            const elVulns = document.getElementById('totalVulnsCount');
+            if (elVulns) elVulns.textContent = totalVulns;
+            const elSuccess = document.getElementById('successRate');
+            if (elSuccess) elSuccess.textContent = total > 0 ? `${successRate}% success rate` : 'No scans yet';
+            const elAvg = document.getElementById('avgVulns');
+            if (elAvg) elAvg.textContent = completed > 0 ? `Avg: ${avg} per scan` : 'No data yet';
+
+            // Update severity counts global variable
+            if (typeof severityCounts !== 'undefined') {
+                severityCounts.all = totalVulns;
+                severityCounts.high = highVulns;
+                severityCounts.medium = mediumVulns;
+                severityCounts.low = lowVulns;
+
+                // Update the displayed count based on current filter
+                const severityCountEl = document.getElementById('severityCount');
+                if (severityCountEl) {
+                    // Check which filter is active
+                    const filterAll = document.getElementById('filterAll');
+                    const filterHigh = document.getElementById('filterHigh');
+                    const filterMedium = document.getElementById('filterMedium');
+                    const filterLow = document.getElementById('filterLow');
+
+                    if (filterAll && filterAll.classList.contains('active')) {
+                        severityCountEl.textContent = totalVulns;
+                    } else if (filterHigh && filterHigh.classList.contains('active')) {
+                        severityCountEl.textContent = highVulns;
+                    } else if (filterMedium && filterMedium.classList.contains('active')) {
+                        severityCountEl.textContent = mediumVulns;
+                    } else if (filterLow && filterLow.classList.contains('active')) {
+                        severityCountEl.textContent = lowVulns;
+                    }
+                }
+            }
+        })
+        .catch(err => console.error('Failed to refresh dashboard stats:', err));
 }
