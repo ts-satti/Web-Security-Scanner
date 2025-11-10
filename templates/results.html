@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-12">
+            <!-- Results Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="display-6 fw-bold text-primary">Scan Results</h1>
+                    <p class="text-muted" id="scanCompletedTime" data-timestamp="{{ completion_iso }}">Scan completed on {{ completion_display }}</p>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-secondary fs-6">{{ scan.scan_type.replace('_', ' ').title() }}</span>
+                </div>
+            </div>
+
+            <!-- Target Information -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-globe me-2"></i>Target Information</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>URL:</strong> {{ scan.target_url }}
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Scan Type:</strong> {{ scan.scan_type.replace('_', ' ').title() }}
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Status:</strong> 
+                            <span class="badge bg-success">Completed</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Overview -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-white bg-{{ 'danger' if results.security_score < 50 else 'warning' if results.security_score < 80 else 'success' }}">
+                        <div class="card-body text-center">
+                            <h2 class="display-4 fw-bold">{{ results.security_score }}/100</h2>
+                            <p class="mb-0">Security Score</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-info">
+                        <div class="card-body text-center">
+                            <h2 class="display-4 fw-bold">{{ results.total_vulnerabilities }}</h2>
+                            <p class="mb-0">Total Vulnerabilities</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-danger">
+                        <div class="card-body text-center">
+                            <h2 class="display-4 fw-bold">
+                                {% set ns = namespace(high_count=0) %}
+                                {% for vuln in results.vulnerabilities %}
+                                    {% if vuln.risk_level == 'High' %}
+                                        {% set ns.high_count = ns.high_count + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                                {{ ns.high_count }}
+                            </h2>
+                            <p class="mb-0">High Risk Issues</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-secondary">
+                        <div class="card-body text-center">
+                            <h2 class="display-4 fw-bold">
+                                {% set categories = [] %}
+                                {% for vuln in results.vulnerabilities %}
+                                    {% if vuln.category not in categories %}
+                                        {% set _ = categories.append(vuln.category) %}
+                                    {% endif %}
+                                {% endfor %}
+                                {{ categories|length }}
+                            </h2>
+                            <p class="mb-0">Vulnerability Types</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vulnerability Categories -->
+            {% if results.vulnerabilities %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bug me-2"></i>
+                        Scan Results - Vulnerabilities Found
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Category Filter Buttons -->
+                    <div class="mb-4">
+                        <h6>Filter by Category:</h6>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary active" data-category="all" onclick="setCategory('all')">
+                                All Vulnerabilities ({{ results.vulnerabilities|length }})
+                            </button>
+                            {% set categories = [] %}
+                            {% for vuln in results.vulnerabilities %}
+                                {% if vuln.category not in categories %}
+                                    {% set _ = categories.append(vuln.category) %}
+                                    <button type="button" class="btn btn-outline-secondary" data-category="{{ vuln.category|lower|replace(' ', '-') }}" onclick="setCategory(this.dataset.category)">
+                                        {{ vuln.category }} ({{ results.vulnerabilities|selectattr('category', 'equalto', vuln.category)|list|length }})
+                                    </button>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Risk Filter Buttons -->
+                    <div class="mb-4">
+                        <h6>Filter by Risk Level:</h6>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary active" data-risk="all" onclick="setRisk('all')">
+                                All Risks
+                            </button>
+                            {% set high_count = results.vulnerabilities|selectattr('risk_level', 'equalto', 'High')|list|length %}
+                            <button type="button" class="btn btn-outline-danger" data-risk="high" onclick="setRisk('high')">
+                                High ({{ high_count }})
+                            </button>
+                            {% set medium_count = results.vulnerabilities|selectattr('risk_level', 'equalto', 'Medium')|list|length %}
+                            <button type="button" class="btn btn-outline-warning" data-risk="medium" onclick="setRisk('medium')">
+                                Medium ({{ medium_count }})
+                            </button>
+                            {% set low_count = results.vulnerabilities|selectattr('risk_level', 'equalto', 'Low')|list|length %}
+                            <button type="button" class="btn btn-outline-info" data-risk="low" onclick="setRisk('low')">
+                                Low ({{ low_count }})
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Vulnerabilities by Category -->
+                    {% set categories = [] %}
+                    {% for vuln in results.vulnerabilities %}
+                        {% if vuln.category not in categories %}
+                            {% set _ = categories.append(vuln.category) %}
+                            
+                            <div class="vulnerability-category mb-4" id="category-{{ vuln.category|lower|replace(' ', '-') }}" data-risk="{{ vuln.risk_level|lower|replace(' ', '') }}">
+                                <h5 class="text-primary mb-3">
+                                    <i class="fas fa-folder me-2"></i>
+                                    {{ vuln.category }} 
+                                    <span class="badge bg-{{ 'danger' if vuln.risk_level == 'High' else 'warning' if vuln.risk_level == 'Medium' else 'info' if vuln.risk_level == 'Low' else 'secondary' }}">
+                                        {{ results.vulnerabilities|selectattr('category', 'equalto', vuln.category)|list|length }} issues
+                                    </span>
+                                </h5>
+                                
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th width="100">Risk</th>
+                                                <th width="200">Location</th>
+                                                <th>Description</th>
+                                                <th width="150">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for vulnerability in results.vulnerabilities %}
+                                                {% if vulnerability.category == vuln.category %}
+                                                <tr class="vulnerability-row" data-risk="{{ vulnerability.risk_level|lower|replace(' ', '') }}">
+                                                    <td>
+                                                        {% if vulnerability.risk_level == 'High' %}
+                                                            <span class="badge bg-danger">High</span>
+                                                        {% elif vulnerability.risk_level == 'Medium' %}
+                                                            <span class="badge bg-warning">Medium</span>
+                                                        {% elif vulnerability.risk_level == 'Low' %}
+                                                            <span class="badge bg-info">Low</span>
+                                                        {% else %}
+                                                            <span class="badge bg-light text-dark">Info</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <code class="text-truncate" style="max-width: 180px; display: block;">
+                                                            {{ vulnerability.location }}
+                                                        </code>
+                                                    </td>
+                                                    <td>
+                                                        <strong>{{ vulnerability.title }}</strong>
+                                                        {% if vulnerability.description %}
+                                                            <br><small>{{ vulnerability.description }}</small>
+                                                        {% endif %}
+                                                        {% if vulnerability.payload %}
+                                                            <br><small class="text-muted">Payload: <code>{{ vulnerability.payload }}</code></small>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" 
+                                                                data-bs-toggle="collapse" 
+                                                                data-bs-target="#details-{{ loop.index }}-{{ vulnerability.category|replace(' ', '-')|replace('/', '-') }}">
+                                                            Details
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr class="collapse vulnerability-details" id="details-{{ loop.index }}-{{ vulnerability.category|replace(' ', '-')|replace('/', '-') }}">
+                                                    <td colspan="4">
+                                                        <div class="p-3 bg-light rounded">
+                                                            <h6>Vulnerability Details</h6>
+                                                            <div class="row">
+                                                                <div class="col-md-6">
+                                                                    <strong>Risk Level:</strong> 
+                                                                    <span class="badge bg-{{ 'danger' if vulnerability.risk_level == 'High' else 'warning' if vulnerability.risk_level == 'Medium' else 'info' if vulnerability.risk_level == 'Low' else 'secondary' }}">
+                                                                        {{ vulnerability.risk_level }}
+                                                                    </span><br>
+                                                                    <strong>Category:</strong> {{ vulnerability.category }}<br>
+                                                                    <strong>Location:</strong> {{ vulnerability.location }}<br>
+                                                                    {% if vulnerability.payload %}
+                                                                    <strong>Test Payload:</strong> 
+                                                                    <code class="bg-dark text-light p-1 rounded">{{ vulnerability.payload }}</code><br>
+                                                                    {% endif %}
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <strong>Recommendation:</strong><br>
+                                                                    {{ vulnerability.recommendation }}
+                                                                    {% if vulnerability.evidence %}
+                                                                    <br><br>
+                                                                    <strong>Evidence:</strong><br>
+                                                                    <small class="text-muted">{{ vulnerability.evidence }}</small>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="card mb-4">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                    <h4>No Vulnerabilities Found</h4>
+                    <p class="text-muted">Great! No security issues were detected during this scan.</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Recent Scans -->
+            {% if scans %}
+            <div class="mt-5">
+                <h3 class="fw-bold mb-4">Recent Scans</h3>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height: 420px; overflow:auto;">
+                            <table class="table" id="recentScansTable">
+                                <thead style="position: sticky; top: 0; background: #fff; z-index: 2;">
+                                    <tr>
+                                        <th>Target URL</th>
+                                        <th>Scan Type</th>
+                                        <th>Status</th>
+                                        <th>Vulnerabilities</th>
+                                        <th>Security Score</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for scan_item in scans %}
+                                    <tr data-scan-id="{{ scan_item.id }}" data-created-at="{{ (scan_item.created_at.replace(microsecond=0).isoformat() + 'Z') }}">
+                                        <td class="text-truncate" style="max-width: 200px;">
+                                            {{ scan_item.target_url }}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ scan_item.scan_type.replace('_', ' ').title() }}</span>
+                                        </td>
+                                        <td>
+                                            {% if scan_item.status == 'completed' %}
+                                                <span class="badge bg-success">Completed</span>
+                                            {% elif scan_item.status == 'running' %}
+                                                <span class="badge bg-warning">Running</span>
+                                            {% elif scan_item.status == 'stopped' %}
+                                                <span class="badge bg-secondary">Stopped</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Error</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if scan_item.status == 'completed' %}
+                                                {% if scan_item.vulnerabilities_count > 0 %}
+                                                    <span class="badge bg-danger">{{ scan_item.vulnerabilities_count }} found</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">{{ scan_item.vulnerabilities_count }} found</span>
+                                                {% endif %}
+                                            {% elif scan_item.status == 'running' %}
+                                                <span class="badge bg-warning">Scanning...</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if scan_item.status == 'completed' %}
+                                                <span class="badge bg-{{ 'danger' if scan_item.security_score < 50 else 'warning' if scan_item.security_score < 80 else 'success' }}">
+                                                    {{ scan_item.security_score }}/100
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="scan-created" data-timestamp="{{ scan_item.created_at.isoformat() }}Z">{{ scan_item.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            <div class="action-btns btn-group" role="group" aria-label="Scan actions">
+                                                {% if scan_item.status == 'completed' %}
+                                                <a href="{{ url_for('results', scan_id=scan_item.id) }}" class="btn btn-sm btn-primary" title="View scan results">
+                                                    <i class="fas fa-chart-bar"></i>
+                                                    <span class="d-none d-md-inline"> View</span>
+                                                </a>
+                                                {% endif %}
+
+                                                <button onclick="deleteScan('{{ scan_item.id }}')" class="btn btn-sm btn-outline-danger" title="Delete scan">
+                                                    <i class="fas fa-trash"></i>
+                                                    <span class="d-none d-md-inline"> Delete</span>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            <div class="mt-4 text-center">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary me-2">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Scanner
+                </a>
+                
+                <!-- Direct download link - no JavaScript involved -->
+                <a href="{{ url_for('export_pdf', scan_id=scan.id) }}" class="btn btn-success me-2" id="exportBtn" data-scan-id="{{ scan.id }}">
+                    <i class="fas fa-download me-1"></i> Export Report
+                </a>
+                
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-redo me-1"></i> New Scan
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Ensure initial filter state applies when page loads
+    if (typeof filterVulnerabilities === 'function') {
+        try {
+            filterVulnerabilities();
+        } catch (err) {
+            console.warn('Initial filter failed', err);
+        }
+    }
+    updateVulnCounter();
+    
+    // Format scan completion time in user's local timezone
+    const scanTimeElement = document.getElementById('scanCompletedTime');
+    if (scanTimeElement) {
+        const timestamp = scanTimeElement.getAttribute('data-timestamp');
+        if (timestamp) {
+            try {
+                const date = new Date(timestamp);
+                const localDateTime = date.toLocaleString(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'medium',
+                    timeZoneName: 'short'
+                });
+                scanTimeElement.textContent = 'Scan completed on ' + localDateTime;
+            } catch (e) {
+                console.warn('Failed to format local time:', e);
+            }
+        }
+    }
+    
+    // Format scan history timestamps in local timezone
+    const scanCreatedElements = document.querySelectorAll('.scan-created[data-timestamp]');
+    scanCreatedElements.forEach(element => {
+        const timestamp = element.getAttribute('data-timestamp');
+        if (timestamp) {
+            try {
+                const date = new Date(timestamp);
+                const localDateTime = date.toLocaleString(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'medium',
+                    timeZoneName: 'short'
+                });
+                element.textContent = localDateTime;
+            } catch (e) {
+                console.warn('Failed to format local time for scan history:', e);
+            }
+        }
+    });
+});
+
+function updateVulnCounter() {
+    const rows = document.querySelectorAll('.vulnerability-row');
+    const total = rows.length;
+    let visible = 0;
+
+    rows.forEach(row => {
+        if (row.style.display !== 'none') {
+            visible += 1;
+        }
+    });
+
+    const counter = document.getElementById('vuln-count');
+    if (counter) {
+        counter.textContent = `Showing ${visible} of ${total}`;
+    }
+}
+
+// Simple function to show loading state
+
+
+function showAlert(message, type) {
+    // Remove existing alerts
+    const existingAlerts = document.querySelectorAll('.custom-alert');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    // Create new alert
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : 'success'} alert-dismissible fade show custom-alert position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+// Export handler is attached from `static/js/main.js` to centralize behavior.
+</script>
+{% endblock %}

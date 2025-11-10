@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section text-white py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 500px;">
+    <div class="container">
+        <div class="row align-items-center min-vh-75">
+            <div class="col-lg-6">
+                <h1 class="display-3 fw-bold mb-4">Protect Your Web Applications</h1>
+                <p class="lead mb-4">Professional security scanning platform that identifies vulnerabilities before attackers do. Comprehensive OWASP Top 10 testing to safeguard your digital assets.</p>
+                <div class="d-flex gap-3">
+                    {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-light btn-lg px-4">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a href="{{ url_for('scans_page') }}" class="btn btn-outline-light btn-lg px-4">
+                        <i class="fas fa-search me-2"></i>Start Scan
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('register_route') }}" class="btn btn-light btn-lg px-4">
+                        <i class="fas fa-rocket me-2"></i>Get Started Free
+                    </a>
+                    <a href="{{ url_for('about') }}" class="btn btn-outline-light btn-lg px-4">
+                        <i class="fas fa-info-circle me-2"></i>Learn More
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="mt-4">
+                    <small class="text-white-50"><i class="fas fa-check me-1"></i>No credit card required • Free tier available • OWASP compliant</small>
+                </div>
+            </div>
+            <div class="col-lg-6 d-none d-lg-block">
+                <div class="text-center">
+                    <i class="fas fa-shield-alt" style="font-size: 15rem; opacity: 0.2;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Why Security Scanning Matters -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold display-6">Why Web Security Scanning Matters</h2>
+            <p class="text-muted lead">Understanding the critical importance of proactive security testing</p>
+        </div>
+        <div class="row align-items-center mb-5">
+            <div class="col-lg-6 mb-4 mb-lg-0">
+                <h3 class="fw-bold mb-4">The Growing Threat Landscape</h3>
+                <p class="mb-4">In today's digital world, web applications are the primary target for cybercriminals. Every 39 seconds, there is a new cyber attack somewhere in the world. The question is not IF your application will be attacked, but WHEN.</p>
+                
+                <div class="alert alert-danger border-0 shadow-sm mb-3">
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-exclamation-triangle fa-2x me-3 mt-1"></i>
+                        <div>
+                            <h6 class="fw-bold mb-2">43% of cyber attacks target small businesses</h6>
+                            <p class="mb-0 small">Many small to medium businesses believe they're too small to be targeted. This false sense of security leaves them vulnerable to automated attacks that scan thousands of websites daily.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning border-0 shadow-sm mb-3">
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-dollar-sign fa-2x me-3 mt-1"></i>
+                        <div>
+                            <h6 class="fw-bold mb-2">Average cost of a data breach: $4.35 Million</h6>
+                            <p class="mb-0 small">Beyond financial loss, breaches result in lost customer trust, legal fees, regulatory fines, and long-term reputation damage that can take years to recover from.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info border-0 shadow-sm">
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-gavel fa-2x me-3 mt-1"></i>
+                        <div>
+                            <h6 class="fw-bold mb-2">Compliance is Not Optional</h6>
+                            <p class="mb-0 small">GDPR, PCI-DSS, HIPAA, and other regulations require regular security testing. Non-compliance can result in fines up to 4% of annual revenue or €20 million, whichever is higher.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-lg">
+                    <div class="card-header bg-primary text-white py-3">
+                        <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>What We Protect You From</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-3">OWASP Top 10 Vulnerabilities:</h6>
+                        <ul class="list-unstyled">
+                            <li class="mb-3">
+                                <i class="fas fa-bug text-danger me-2"></i><strong>SQL Injection</strong>
+                                <p class="text-muted small mb-0 ms-4">Attackers can steal, modify, or delete your entire database</p>
+                            </li>
+                            <li class="mb-3">
+                                <i class="fas fa-bug text-danger me-2"></i><strong>Cross-Site Scripting (XSS)</strong>
+                                <p class="text-muted small mb-0 ms-4">Malicious scripts can steal user sessions and sensitive data</p>
+                            </li>
+                            <li class="mb-3">
+                                <i class="fas fa-bug text-danger me-2"></i><strong>Broken Access Control</strong>
+                                <p class="text-muted small mb-0 ms-4">Unauthorized users accessing restricted resources</p>
+                            </li>
+                            <li class="mb-3">
+                                <i class="fas fa-bug text-danger me-2"></i><strong>Cryptographic Failures</strong>
+                                <p class="text-muted small mb-0 ms-4">Weak encryption exposing sensitive information</p>
+                            </li>
+                            <li class="mb-3">
+                                <i class="fas fa-bug text-danger me-2"></i><strong>Security Misconfiguration</strong>
+                                <p class="text-muted small mb-0 ms-4">Improper server and application configurations</p>
+                            </li>
+                            <li class="mb-0">
+                                <i class="fas fa-ellipsis-h text-muted me-2"></i><strong>And 5+ More Critical Threats</strong>
+                                <p class="text-muted small mb-0 ms-4">Complete coverage of OWASP Top 10 and beyond</p>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- What Makes Us Different -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold display-6">Why Choose Our Scanner</h2>
+            <p class="text-muted lead">Built by security professionals for security professionals</p>
+        </div>
+        <div class="row g-4 mb-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="card border-0 shadow-sm h-100 text-center">
+                    <div class="card-body p-4">
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-bolt fa-2x text-primary"></i>
+                        </div>
+                        <h5 class="fw-bold">Fast & Efficient</h5>
+                        <p class="text-muted mb-0">Advanced scanning algorithms complete comprehensive tests in minutes, not hours</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card border-0 shadow-sm h-100 text-center">
+                    <div class="card-body p-4">
+                        <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-eye fa-2x text-success"></i>
+                        </div>
+                        <h5 class="fw-bold">Real-Time Monitoring</h5>
+                        <p class="text-muted mb-0">Watch vulnerabilities being discovered live with detailed activity logs</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card border-0 shadow-sm h-100 text-center">
+                    <div class="card-body p-4">
+                        <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-file-pdf fa-2x text-warning"></i>
+                        </div>
+                        <h5 class="fw-bold">Detailed Reports</h5>
+                        <p class="text-muted mb-0">Export comprehensive PDF reports with remediation steps for your team</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card border-0 shadow-sm h-100 text-center">
+                    <div class="card-body p-4">
+                        <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-graduation-cap fa-2x text-info"></i>
+                        </div>
+                        <h5 class="fw-bold">Actionable Insights</h5>
+                        <p class="text-muted mb-0">Every vulnerability includes clear recommendations and fix guides</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Comprehensive Security Testing</h2>
+            <p class="text-muted">Detect vulnerabilities across multiple attack vectors</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon bg-primary bg-opacity-10 text-primary mb-3 mx-auto">
+                            <i class="fas fa-code fa-2x"></i>
+                        </div>
+                        <h5 class="fw-bold">XSS Detection</h5>
+                        <p class="text-muted mb-0">Identify Cross-Site Scripting vulnerabilities with advanced payload testing</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon bg-danger bg-opacity-10 text-danger mb-3 mx-auto">
+                            <i class="fas fa-database fa-2x"></i>
+                        </div>
+                        <h5 class="fw-bold">SQL Injection</h5>
+                        <p class="text-muted mb-0">Detect SQL injection flaws that could expose your database</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon bg-warning bg-opacity-10 text-warning mb-3 mx-auto">
+                            <i class="fas fa-lock fa-2x"></i>
+                        </div>
+                        <h5 class="fw-bold">CSRF Protection</h5>
+                        <p class="text-muted mb-0">Check for Cross-Site Request Forgery vulnerabilities</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon bg-info bg-opacity-10 text-info mb-3 mx-auto">
+                            <i class="fas fa-server fa-2x"></i>
+                        </div>
+                        <h5 class="fw-bold">Security Headers</h5>
+                        <p class="text-muted mb-0">Validate HTTP security headers and configuration</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon bg-success bg-opacity-10 text-success mb-3 mx-auto">
+                            <i class="fas fa-network-wired fa-2x"></i>
+                        </div>
+                        <h5 class="fw-bold">Port Scanning</h5>
+                        <p class="text-muted mb-0">Discover open ports and potential entry points</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon bg-dark bg-opacity-10 text-dark mb-3 mx-auto">
+                            <i class="fas fa-microscope fa-2x"></i>
+                        </div>
+                        <h5 class="fw-bold">Deep Scanning</h5>
+                        <p class="text-muted mb-0">Comprehensive OWASP Top 10 vulnerability assessment</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">How It Works</h2>
+            <p class="text-muted">Get started in three simple steps</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="text-center">
+                    <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <span class="display-6 fw-bold">1</span>
+                    </div>
+                    <h5 class="fw-bold">Sign Up</h5>
+                    <p class="text-muted">Create your free account in seconds</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center">
+                    <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <span class="display-6 fw-bold">2</span>
+                    </div>
+                    <h5 class="fw-bold">Configure Scan</h5>
+                    <p class="text-muted">Enter your target URL and select scan type</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center">
+                    <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <span class="display-6 fw-bold">3</span>
+                    </div>
+                    <h5 class="fw-bold">Get Results</h5>
+                    <p class="text-muted">View detailed vulnerability reports and recommendations</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-5 bg-primary text-white">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h2 class="fw-bold mb-2">Ready to Secure Your Applications?</h2>
+                <p class="mb-0">Start scanning for vulnerabilities today with our free tier</p>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <a href="{{ url_for('register_route') }}" class="btn btn-light btn-lg px-4">
+                    <i class="fas fa-user-plus me-2"></i>Sign Up Now
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row text-center g-4">
+            <div class="col-md-3">
+                <h2 class="display-4 fw-bold text-primary">10+</h2>
+                <p class="text-muted mb-0">Scan Types</p>
+            </div>
+            <div class="col-md-3">
+                <h2 class="display-4 fw-bold text-primary">100%</h2>
+                <p class="text-muted mb-0">OWASP Coverage</p>
+            </div>
+            <div class="col-md-3">
+                <h2 class="display-4 fw-bold text-primary">24/7</h2>
+                <p class="text-muted mb-0">Scanning Available</p>
+            </div>
+            <div class="col-md-3">
+                <h2 class="display-4 fw-bold text-primary">∞</h2>
+                <p class="text-muted mb-0">Free Scans</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

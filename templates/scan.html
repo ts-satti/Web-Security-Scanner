@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <!-- Page Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold text-primary">Security Scanner</h1>
+                <p class="lead">Start a new security scan for any website</p>
+            </div>
+
+            <!-- Scan Form -->
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-header bg-primary text-white py-3">
+                    <h4 class="mb-0"><i class="fas fa-search me-2"></i>Start New Security Scan</h4>
+                </div>
+                <div class="card-body p-4">
+                    <!-- FIXED: Remove 'main.' from the action -->
+                    <form id="scanForm" method="POST" action="{{ url_for('start_scan') }}">
+                        <div class="mb-4">
+                            <label for="target_url" class="form-label fw-bold">Website URL</label>
+                            <input type="url" class="form-control form-control-lg" 
+                                   id="target_url" name="target_url" 
+                                   placeholder="https://example.com" required>
+                            <div class="form-text">Enter the full URL of the website you want to scan</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="scan_type" class="form-label fw-bold">Scan Type</label>
+                            <select class="form-select form-select-lg" id="scan_type" name="scan_type" required>
+                                <option value="">-- Select Scan Type --</option>
+                                <optgroup label="OWASP Top 10">
+                                    <option value="owasp_top_10">OWASP Top 10 Standard (Comprehensive)</option>
+                                    <option value="xss">XSS Vulnerability Scan</option>
+                                    <option value="sqli">SQL Injection Scan</option>
+                                    <option value="csrf">CSRF Vulnerability Scan</option>
+                                    <option value="headers">Security Headers Scan</option>
+                                    <option value="info_disclosure">Information Disclosure Scan</option>
+                                </optgroup>
+                                <optgroup label="Network Security">
+                                    <option value="port_scan">Port Scanning</option>
+                                </optgroup>
+                                <optgroup label="Advanced Scans">
+                                    <option value="deep_scan">Deep Security Scan</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-danger btn-lg py-3" id="scanButton">
+                                <i class="fas fa-search me-2"></i>Start Scan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Enhanced Activity Log Panel -->
+            <div id="scanProgress" style="display: none;">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-spinner fa-spin me-2"></i> 
+                            Security Scan in Progress
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <button id="terminateScanButton" class="btn btn-danger btn-sm">
+                                <i class="fas fa-times me-1"></i> Stop & Discard
+                            </button>
+                            <button id="stopScanButton" class="btn btn-warning btn-sm">
+                                <i class="fas fa-stop me-1"></i> Pause Scan
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Enhanced Scan Status Cards -->
+                        <div class="row mb-3 text-center">
+                            <div class="col-md-3">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body py-2">
+                                        <h6 class="card-title mb-1">Status</h6>
+                                        <div id="scanStatus" class="status-running fw-bold">Running</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-danger text-white">
+                                    <div class="card-body py-2">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <h6 class="card-title mb-0">Vulnerabilities</h6>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-light dropdown-toggle py-0 px-1" type="button" id="vulnFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.75rem; border: none;">
+                                                    <i class="fas fa-filter"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="vulnFilterDropdown" style="min-width: 180px;">
+                                                    <li>
+                                                        <div class="px-3 py-1 fw-bold text-muted" style="font-size: 0.75rem;">Filter by Severity</div>
+                                                        <div class="px-3 py-0 text-muted" style="font-size: 0.65rem; font-style: italic;">Live count only</div>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider my-1"></li>
+                                                    <li>
+                                                        <label class="dropdown-item">
+                                                            <input type="checkbox" class="form-check-input me-2 vuln-filter-checkbox" value="all" id="filter-all" checked>
+                                                            All
+                                                        </label>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider my-1"></li>
+                                                    <li>
+                                                        <label class="dropdown-item">
+                                                            <input type="checkbox" class="form-check-input me-2 vuln-filter-checkbox" value="Critical">
+                                                            <span class="badge bg-danger" style="font-size: 0.7rem;">Critical</span>
+                                                        </label>
+                                                    </li>
+                                                    <li>
+                                                        <label class="dropdown-item">
+                                                            <input type="checkbox" class="form-check-input me-2 vuln-filter-checkbox" value="High">
+                                                            <span class="badge bg-danger" style="font-size: 0.7rem;">High</span>
+                                                        </label>
+                                                    </li>
+                                                    <li>
+                                                        <label class="dropdown-item">
+                                                            <input type="checkbox" class="form-check-input me-2 vuln-filter-checkbox" value="Medium">
+                                                            <span class="badge bg-warning" style="font-size: 0.7rem;">Medium</span>
+                                                        </label>
+                                                    </li>
+                                                    <li>
+                                                        <label class="dropdown-item">
+                                                            <input type="checkbox" class="form-check-input me-2 vuln-filter-checkbox" value="Low">
+                                                            <span class="badge bg-info" style="font-size: 0.7rem;">Low</span>
+                                                        </label>
+                                                    </li>
+                                                    <li>
+                                                        <label class="dropdown-item">
+                                                            <input type="checkbox" class="form-check-input me-2 vuln-filter-checkbox" value="Info">
+                                                            <span class="badge bg-secondary" style="font-size: 0.7rem;">Info</span>
+                                                        </label>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <h4 id="vulnerabilitiesCount" class="mb-0">0</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body py-2">
+                                        <h6 class="card-title mb-1">Security Score</h6>
+                                        <h4 id="securityScore" class="text-success mb-0">100/100</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-secondary text-white">
+                                    <div class="card-body py-2">
+                                        <h6 class="card-title mb-1">Scan Phase</h6>
+                                        <div id="scanPhase" class="fw-bold">Initializing...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Enhanced Real-time Activity Log -->
+                        <div class="mt-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="text-primary mb-0">
+                                    <i class="fas fa-list-alt me-1"></i> Live Activity Log
+                                </h6>
+                                <small class="text-muted">Real-time scanning activities</small>
+                            </div>
+                            <div id="activityLog" class="activity-log">
+                                <div class="log-entry">
+                                    <span class="log-time">[Loading...]</span>
+                                    <span class="log-message">🔄 Scanner initialized and ready...</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Progress bar removed: live activity log provides updates -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scan History -->
+            {% if scans %}
+            <div class="mt-5">
+                <h3 class="fw-bold mb-4">Recent Scans</h3>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height: 420px; overflow:auto;">
+                            <table class="table" id="recentScansTable">
+                                <thead style="position: sticky; top: 0; background: #fff; z-index: 2;">
+                                    <tr>
+                                        <th>Target URL</th>
+                                        <th>Scan Type</th>
+                                        <th>Status</th>
+                                        <th>Vulnerabilities</th>
+                                        <th>Security Score</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for scan in scans %}
+                                    <tr data-scan-id="{{ scan.id }}" data-created-at="{{ (scan.created_at.replace(microsecond=0).isoformat() + 'Z') }}">
+                                        <td class="text-truncate" style="max-width: 200px;">
+                                            {{ scan.target_url }}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ scan.scan_type.replace('_', ' ').title() }}</span>
+                                        </td>
+                                        <td>
+                                            {% if scan.status == 'completed' %}
+                                                <span class="badge bg-success">Completed</span>
+                                            {% elif scan.status == 'running' %}
+                                                <span class="badge bg-warning">Running</span>
+                                            {% elif scan.status == 'stopped' %}
+                                                <span class="badge bg-secondary">Stopped</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Error</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if scan.status == 'completed' %}
+                                                {% if scan.vulnerabilities_count > 0 %}
+                                                    <span class="badge bg-danger">{{ scan.vulnerabilities_count }} found</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">{{ scan.vulnerabilities_count }} found</span>
+                                                {% endif %}
+                                            {% elif scan.status == 'running' %}
+                                                <span class="badge bg-warning">Scanning...</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if scan.status == 'completed' %}
+                                                <span class="badge bg-{{ 'danger' if scan.security_score < 50 else 'warning' if scan.security_score < 80 else 'success' }}">
+                                                    {{ scan.security_score }}/100
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="scan-created" data-timestamp="{{ scan.created_at.isoformat() }}Z">{{ scan.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            <div class="action-btns btn-group" role="group" aria-label="Scan actions">
+                                                {% if scan.status == 'completed' %}
+                                                <a href="{{ url_for('results', scan_id=scan.id) }}" class="btn btn-sm btn-primary" title="View scan results">
+                                                    <i class="fas fa-chart-bar"></i>
+                                                    <span class="d-none d-md-inline"> View</span>
+                                                </a>
+                                                {% endif %}
+
+                                                <button onclick="deleteScan('{{ scan.id }}')" class="btn btn-sm btn-outline-danger" title="Delete scan">
+                                                    <i class="fas fa-trash"></i>
+                                                    <span class="d-none d-md-inline"> Delete</span>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Prevent dropdown from closing when clicking on checkboxes
+document.addEventListener('DOMContentLoaded', function() {
+    const vulnFilterDropdown = document.querySelector('#vulnFilterDropdown');
+    if (vulnFilterDropdown) {
+        const dropdownMenu = vulnFilterDropdown.nextElementSibling;
+        dropdownMenu.addEventListener('click', function(e) {
+            // Only prevent closing if clicking on a checkbox or label
+            if (e.target.classList.contains('vuln-filter-checkbox') || 
+                e.target.closest('label')) {
+                e.stopPropagation();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

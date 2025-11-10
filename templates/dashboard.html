@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Dashboard Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-bold mb-1">Security Dashboard</h2>
+                    <p class="text-muted mb-0">Welcome back, {{ current_user.username }}!</p>
+                </div>
+                <a href="{{ url_for('scans_page') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus-circle me-2"></i>New Scan
+                </a>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <p class="text-muted mb-1 small">Total Scans</p>
+                                    <h3 class="fw-bold mb-0">{{ stats.total_scans }}</h3>
+                                    <small class="text-muted">All time</small>
+                                </div>
+                                <div class="bg-primary bg-opacity-10 p-3 rounded">
+                                    <i class="fas fa-search text-primary fa-lg"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <p class="text-muted mb-1 small">Completed</p>
+                                    <h3 class="fw-bold mb-0">{{ stats.completed_scans }}</h3>
+                                    {% if stats.total_scans > 0 %}
+                                    <small class="text-success">{{ stats.success_rate }}% success rate</small>
+                                    {% else %}
+                                    <small class="text-muted">No scans yet</small>
+                                    {% endif %}
+                                </div>
+                                <div class="bg-success bg-opacity-10 p-3 rounded">
+                                    <i class="fas fa-check-circle text-success fa-lg"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <p class="text-muted mb-1 small">Active Scans</p>
+                                    <h3 class="fw-bold mb-0">{{ stats.active_scans }}</h3>
+                                    <small class="text-warning">Currently running</small>
+                                </div>
+                                <div class="bg-warning bg-opacity-10 p-3 rounded">
+                                    <i class="fas fa-spinner text-warning fa-lg"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <p class="text-muted mb-1 small">Vulnerabilities</p>
+                                    <h3 class="fw-bold mb-0 text-danger">{{ stats.total_vulnerabilities }}</h3>
+                                    {% if stats.completed_scans > 0 %}
+                                    <small class="text-muted">Avg: {{ stats.avg_vulnerabilities }} per scan</small>
+                                    {% else %}
+                                    <small class="text-muted">No data yet</small>
+                                    {% endif %}
+                                </div>
+                                <div class="bg-danger bg-opacity-10 p-3 rounded">
+                                    <i class="fas fa-exclamation-triangle text-danger fa-lg"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Scan Progress Section (Initially Hidden) -->
+            <div id="scanProgress" class="card border-0 shadow-sm mb-4" style="display: none;">
+                <div class="card-header bg-primary text-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Scan Progress</h5>
+                        <div class="btn-group" role="group">
+                            <button id="stopScanButton" class="btn btn-warning btn-sm" disabled>
+                                <i class="fas fa-pause me-1"></i> Pause Scan
+                            </button>
+                            <button id="terminateScanButton" class="btn btn-danger btn-sm" disabled>
+                                <i class="fas fa-times me-1"></i> Terminate
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Progress Bar -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-semibold">Progress</span>
+                            <span id="progressPercent" class="badge bg-primary">0%</span>
+                        </div>
+                        <div class="progress" style="height: 25px;">
+                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%">0%</div>
+                        </div>
+                    </div>
+
+                    <!-- Status Cards -->
+                    <div class="row mb-3 text-center">
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body py-2">
+                                    <h6 class="card-title mb-1">Status</h6>
+                                    <div id="scanStatus" class="status-running fw-bold">Running</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body py-2">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <h6 class="card-title mb-0">Vulnerabilities</h6>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-light dropdown-toggle py-0 px-1" type="button" id="vulnFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.75rem; border: none;">
+                                                <i class="fas fa-filter"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="vulnFilterDropdown" style="min-width: 180px;">
+                                                <li>
+                                                    <div class="px-3 py-1 fw-bold text-muted" style="font-size: 0.75rem;">Filter by Severity</div>
+                                                    <div class="px-3 py-0 text-muted" style="font-size: 0.65rem; font-style: italic;">Live count only</div>
+                                                </li>
+                                                <li><hr class="dropdown-divider my-1"></li>
+                                                <li>
+                                                    <label class="dropdown-item">
+                                                        <input type="checkbox" class="form-check-input me-2 vuln-filter-checkbox" value="all" id="filter-all" checked>
+                                                        All
+                                                    </label>
+                                                </li>
+                                                <li><hr class="dropdown-divider my-1"></li>
+                                                <li>
+                                                    <label class="dropdown-item">
+                                                        <input type="checkbox" class="form-check-input me-2 vuln-filter-checkbox" value="Critical">
+                                                        <span class="badge bg-danger" style="font-size: 0.7rem;">Critical</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="dropdown-item">
+                                                        <input type="checkbox" class="form-check-input me-2 vuln-filter-checkbox" value="High">
+                                                        <span class="badge bg-danger" style="font-size: 0.7rem;">High</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="dropdown-item">
+                                                        <input type="checkbox" class="form-check-input me-2 vuln-filter-checkbox" value="Medium">
+                                                        <span class="badge bg-warning" style="font-size: 0.7rem;">Medium</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="dropdown-item">
+                                                        <input type="checkbox" class="form-check-input me-2 vuln-filter-checkbox" value="Low">
+                                                        <span class="badge bg-info" style="font-size: 0.7rem;">Low</span>
+                                                    </label>
+                                                </li>
+                                                <li>
+                                                    <label class="dropdown-item">
+                                                        <input type="checkbox" class="form-check-input me-2 vuln-filter-checkbox" value="Info">
+                                                        <span class="badge bg-secondary" style="font-size: 0.7rem;">Info</span>
+                                                    </label>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <h4 id="vulnerabilitiesCount" class="mb-0">0</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body py-2">
+                                    <h6 class="card-title mb-1">Security Score</h6>
+                                    <h4 id="securityScore" class="text-success mb-0">100/100</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-secondary text-white">
+                                <div class="card-body py-2">
+                                    <h6 class="card-title mb-1">Scan Phase</h6>
+                                    <div id="scanPhase" class="fw-bold">Initializing...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Log -->
+                    <div class="activity-log-container">
+                        <h6 class="fw-bold mb-2"><i class="fas fa-list me-2"></i>Activity Log</h6>
+                        <div id="activityLog" class="activity-log"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Scans Table -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0"><i class="fas fa-history me-2 text-primary"></i>Recent Scans</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if scans %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="scansTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Target URL</th>
+                                    <th>Scan Type</th>
+                                    <th>Status</th>
+                                    <th>Vulnerabilities</th>
+                                    <th>Score</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for scan in scans[:10] %}
+                                <tr>
+                                    <td>
+                                        <div class="text-truncate" style="max-width: 300px;">
+                                            <i class="fas fa-globe text-muted me-2"></i>
+                                            <span title="{{ scan.target_url }}">{{ scan.target_url }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ scan.scan_type.replace('_', ' ').title() }}</span>
+                                    </td>
+                                    <td>
+                                        {% if scan.status == 'completed' %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% elif scan.status == 'running' %}
+                                            <span class="badge bg-warning">Running</span>
+                                        {% elif scan.status == 'stopped' %}
+                                            <span class="badge bg-secondary">Stopped</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Error</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if scan.status == 'completed' %}
+                                            {% if scan.vulnerabilities_count > 0 %}
+                                                <span class="badge bg-danger">{{ scan.vulnerabilities_count }} found</span>
+                                            {% else %}
+                                                <span class="badge bg-success">0 found</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if scan.status == 'completed' %}
+                                            <span class="badge bg-{{ 'danger' if scan.security_score < 50 else 'warning' if scan.security_score < 80 else 'success' }}">
+                                                {{ scan.security_score }}/100
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted scan-timestamp" data-timestamp="{{ scan.created_at.isoformat() }}">
+                                            {{ scan.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            {% if scan.status == 'completed' %}
+                                            <a href="{{ url_for('results', scan_id=scan.id) }}" class="btn btn-primary" title="View Results">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% endif %}
+                                            <button onclick="deleteScan('{{ scan.id }}')" class="btn btn-outline-danger" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No scans yet. Start your first scan above!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Prevent dropdown from closing when clicking on checkboxes
+document.addEventListener('DOMContentLoaded', function() {
+    const vulnFilterDropdown = document.querySelector('#vulnFilterDropdown');
+    if (vulnFilterDropdown) {
+        const dropdownMenu = vulnFilterDropdown.nextElementSibling;
+        dropdownMenu.addEventListener('click', function(e) {
+            // Only prevent closing if clicking on a checkbox or label
+            if (e.target.classList.contains('vuln-filter-checkbox') || 
+                e.target.closest('label')) {
+                e.stopPropagation();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

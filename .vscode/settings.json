@@ -1,0 +1,17 @@
+{
+    // Treat template files as Jinja so the editor understands {{ ... }} and {% ... %}
+    "files.associations": {
+        "**/templates/*.html": "jinja",
+        "**/templates/**/*.html": "jinja"
+    },
+
+    // Improve in-template editing experience
+    "editor.quickSuggestions": {
+        "strings": true
+    },
+
+    // Keep existing python env settings (if any)
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": []
+}
+  

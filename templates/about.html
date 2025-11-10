@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="display-4 fw-bold text-center mb-5">About Security Scanner</h1>
+            
+            <div class="card shadow-lg mb-4">
+                <div class="card-body p-4">
+                    <h3 class="fw-bold text-primary mb-3">What is Security Scanner?</h3>
+                    <p class="lead">
+                        Security Scanner is a comprehensive web application security testing platform designed to help 
+                        developers and security professionals identify vulnerabilities in their web applications.
+                    </p>
+                    <p>
+                        Our platform provides automated security testing for various types of vulnerabilities, 
+                        from common OWASP Top 10 issues to advanced security concerns.
+                    </p>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary">
+                                <i class="fas fa-bullseye me-2"></i>Our Mission
+                            </h5>
+                            <p class="card-text">
+                                To make web application security testing accessible to everyone, from individual 
+                                developers to enterprise security teams.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary">
+                                <i class="fas fa-shield-alt me-2"></i>Security First
+                            </h5>
+                            <p class="card-text">
+                                We follow ethical security testing practices and ensure all scans are performed 
+                                responsibly and with proper authorization.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Features</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success me-2"></i> OWASP Top 10 Testing</li>
+                                <li><i class="fas fa-check text-success me-2"></i> SQL Injection Detection</li>
+                                <li><i class="fas fa-check text-success me-2"></i> Cross-Site Scripting (XSS)</li>
+                                <li><i class="fas fa-check text-success me-2"></i> CSRF Vulnerability Testing</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success me-2"></i> Security Headers Analysis</li>
+                                <li><i class="fas fa-check text-success me-2"></i> Port Scanning</li>
+                                <li><i class="fas fa-check text-success me-2"></i> Deep Security Scanning</li>
+                                <li><i class="fas fa-check text-success me-2"></i> Comprehensive Reporting</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
