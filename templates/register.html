@@ -12,9 +12,118 @@
                     <form method="POST">
                         {{ form.hidden_tag() }}
                         <div class="mb-3">
+                            {{ form.firstname.label }}
+                            {{ form.firstname(class="form-control") }}
+                            {% for error in form.firstname.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.lastname.label }}
+                            {{ form.lastname(class="form-control") }}
+                            {% for error in form.lastname.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-3">
                             {{ form.email.label }}
                             {{ form.email(class="form-control") }}
                             {% for error in form.email.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-3">
+                            <label for="mobile">Mobile Number</label>
+                            <div class="input-group" style="gap: 6px;">
+                                <span class="input-group-text p-0" style="border-radius: 0.375rem 0 0 0.375rem; padding: 0; border-right: 0; background: none;">
+                                    <select id="country_code" name="country_code" class="form-select border-0" style="width: 90px; min-width: 70px; max-width: 110px;">
+                                    </select>
+                                </span>
+                                {{ form.mobile(class="form-control border-start-0 flex-grow-1", id="mobile", placeholder="Enter mobile number", style="min-width:180px;") }}
+                            </div>
+                            <script>
+                                fetch("/static/data/country_codes.json")
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        const select = document.getElementById('country_code');
+                                        data.forEach(function(country) {
+                                            const option = document.createElement('option');
+                                            option.value = country.dial_code;
+                                            option.text = `${country.name} (${country.dial_code})`;
+                                            select.appendChild(option);
+                                        });
+                                        // Store full text for each option
+                                        Array.from(select.options).forEach((option, idx) => {
+                                            option.setAttribute('data-full', option.text);
+                                            const country = data[idx];
+                                            option.setAttribute('data-short', `${country.name.substring(0,3).toUpperCase()} ${country.dial_code}`);
+                                        });
+                                    });
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    const select = document.getElementById('country_code');
+                                    const mobileInput = document.getElementById('mobile');
+                                    let lastIdx = null;
+                                    select.addEventListener('focus', function() {
+                                        Array.from(select.options).forEach(option => {
+                                            if(option.dataset.full) option.text = option.dataset.full;
+                                        });
+                                    });
+                                    select.addEventListener('change', function() {
+                                        const idx = select.selectedIndex;
+                                        const option = select.options[idx];
+                                        if(option.dataset.short) {
+                                            option.text = option.dataset.short;
+                                            setTimeout(() => {
+                                                if(document.activeElement !== select) {
+                                                    option.text = option.dataset.short;
+                                                }
+                                            }, 200);
+                                        }
+                                        lastIdx = idx;
+                                    });
+                                    select.addEventListener('blur', function() {
+                                        Array.from(select.options).forEach((option, idx) => {
+                                            if(idx === select.selectedIndex && option.dataset.short) {
+                                                option.text = option.dataset.short;
+                                            } else if(option.dataset.full) {
+                                                option.text = option.dataset.full;
+                                            }
+                                        });
+                                    });
+                                    // Highlight fields red on error
+                                    const form = document.querySelector('form');
+                                    function setInvalidStyles() {
+                                        select.classList.add('is-invalid');
+                                        mobileInput.classList.add('is-invalid');
+                                        select.style.border = '2px solid #dc3545';
+                                        mobileInput.style.border = '2px solid #dc3545';
+                                        select.style.boxShadow = '0 0 0 0.2rem rgba(220,53,69,.25)';
+                                        mobileInput.style.boxShadow = '0 0 0 0.2rem rgba(220,53,69,.25)';
+                                    }
+                                    function clearInvalidStyles() {
+                                        select.classList.remove('is-invalid');
+                                        mobileInput.classList.remove('is-invalid');
+                                        select.style.border = '';
+                                        mobileInput.style.border = '';
+                                        select.style.boxShadow = '';
+                                        mobileInput.style.boxShadow = '';
+                                    }
+                                    form.addEventListener('submit', function(e) {
+                                        setTimeout(() => {
+                                            const errorText = form.querySelector('.text-danger');
+                                            if (errorText) {
+                                                setInvalidStyles();
+                                            } else {
+                                                clearInvalidStyles();
+                                            }
+                                        }, 100);
+                                    });
+                                    // Also clear on input
+                                    mobileInput.addEventListener('input', clearInvalidStyles);
+                                    select.addEventListener('change', clearInvalidStyles);
+                                });
+                            </script>
+                            {% for error in form.mobile.errors %}
                                 <small class="text-danger">{{ error }}</small>
                             {% endfor %}
                         </div>
@@ -24,6 +133,156 @@
                             {% for error in form.password.errors %}
                                 <small class="text-danger">{{ error }}</small>
                             {% endfor %}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.confirm_password.label }}
+                            {{ form.confirm_password(class="form-control") }}
+                            {% for error in form.confirm_password.errors %}
+                                <small class="text-danger">{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="privacyPolicy" name="privacy_policy" required>
+                                <label class="form-check-label" for="privacyPolicy">
+                                    I have read and agree to the <a href="#privacyModal" data-bs-toggle="modal" style="text-decoration:underline;cursor:pointer;">Privacy Policy & Website Usage Agreement</a>.
+                                </label>
+                            </div>
+                            <!-- Privacy Policy Modal -->
+                            <div class="modal fade" id="privacyModal" tabindex="-1" aria-labelledby="privacyModalLabel" aria-hidden="true">
+                                <div class="modal-dialog modal-xl modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-primary text-white">
+                                            <h5 class="modal-title" id="privacyModalLabel">Privacy Policy & Website Usage Agreement</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+                                            <!-- TL;DR Section -->
+                                            
+
+                                            <!-- Privacy Policy Section -->
+                                            <h5 class="fw-bold border-bottom pb-2">Privacy Policy</h5>
+                                            <p class="text-muted small">Last Updated: 11/2025</p>
+
+                                            <h6 class="mt-4">1. Our Commitment to You</h6>
+                                            <p>At [Company Name] ("we," "our," or "us"), we provide powerful security tools, and we believe that comes with a responsibility to be transparent about your data. This Privacy Policy explains what information we collect, how we use it, and your rights. By using our services, you trust us with your information, and we are committed to protecting it.</p>
+
+                                            <h6>2. Information We Collect</h6>
+                                            <p>To provide our services, we collect information necessary to create and secure your account.</p>
+                                            <p><strong>Information You Provide:</strong></p>
+                                            <ul>
+                                                <li><strong>Account Data:</strong> When you register, we collect your full name, email address, and mobile number.</li>
+                                                <li><strong>Professional Information:</strong> Your professional affiliation, if you choose to provide it.</li>
+                                                <li><strong>User Content:</strong> Data you submit through our services, such as targets for security testing or vulnerability reports.</li>
+                                            </ul>
+                                            <p><strong>Information Collected Automatically:</strong></p>
+                                            <ul>
+                                                <li><strong>Technical Data:</strong> Like most websites, we collect your IP address, browser type, and device information to ensure compatibility and security.</li>
+                                                <li><strong>Usage Data:</strong> We collect data on how you interact with our services to identify and fix issues and improve performance.</li>
+                                                <li><strong>Cookies:</strong> We use cookies to keep you logged in and understand how our service is used. You can manage cookies through your browser settings.</li>
+                                            </ul>
+
+                                            <h6>3. How We Use Your Information</h6>
+                                            <p>We use your information to:</p>
+                                            <ul>
+                                                <li><strong>Create and Manage</strong> your account and authenticate your access.</li>
+                                                <li><strong>Provide and Improve</strong> our services, including troubleshooting and developing new features.</li>
+                                                <li><strong>Communicate</strong> with you about service updates, security alerts, and support.</li>
+                                                <li><strong>Ensure Security</strong> by monitoring for fraudulent activity and protecting our systems.</li>
+                                                <li><strong>Comply</strong> with applicable laws and regulations.</li>
+                                            </ul>
+
+                                            <h6>4. How We Share Information (Our Trusted Partnerships)</h6>
+                                            <p>To provide a seamless and secure service, we collaborate with specialized third-party providers. This means we share necessary information under strict contractual terms that mandate confidentiality and data protection. These partners help us with:</p>
+                                            <ul>
+                                                <li><strong>Cloud Hosting and Infrastructure</strong> (e.g., AWS, Google Cloud)</li>
+                                                <li><strong>Communication Platforms</strong> (e.g., for sending emails)</li>
+                                                <li><strong>Analytics Services</strong> to understand service performance.</li>
+                                            </ul>
+                                            <p>We may also disclose information if required by law or to protect our rights, users, or the public, as outlined in our Terms of Service.</p>
+
+                                            <h6>5. Data Security</h6>
+                                            <p>We implement industry-standard measures to protect your data, including encryption, access controls, and regular security assessments. While no online service is 100% secure, we work tirelessly to safeguard your information.</p>
+
+                                            <h6>6. Your Rights and Choices</h6>
+                                            <p>You have control over your personal data. You can access, correct, or delete your account information through your account settings. You may also have the right to restrict or object to certain processing. To exercise these rights, please contact us.</p>
+
+                                            <h6>7. International Data Transfers</h6>
+                                            <p>Our services are global, and your data may be processed in countries other than your own. We ensure all such transfers are protected by appropriate legal safeguards.</p>
+
+                                            <h6>8. Contact Us</h6>
+                                            <p>For any questions about this policy or your data, please contact us at [Insert Contact Email/Form Link].</p>
+
+                                            <hr class="my-4">
+
+                                            <!-- Terms of Service Section -->
+                                            <h5 class="fw-bold border-bottom pb-2">Website Terms of Service</h5>
+                                            <p class="text-muted small">Last Updated: [Date]</p>
+
+                                            <h6 class="mt-4">1. Accepting These Terms</h6>
+                                            <p>By accessing or using the services ("Services") of [Company Name] ("Company," "we," "us"), you agree to be bound by these Terms of Service. If you disagree, you may not use our Services.</p>
+
+                                            <h6>2. Our Services</h6>
+                                            <p>We provide a platform of security testing tools for cybersecurity professionals, developers, and website owners. Our tools are designed to help you identify and fix security vulnerabilities.</p>
+
+                                            <h6>3. Your Account & Security</h6>
+                                            <p>You must provide accurate information when creating an account and are responsible for all activities under it. You must promptly notify us of any security breach or unauthorized use.</p>
+
+                                            <h6>4. Responsible Use (The Golden Rule)</h6>
+                                            <p>Our tools are powerful. With that power comes a responsibility to improve the security ecosystem ethically.</p>
+                                            <p><strong>You Agree To:</strong></p>
+                                            <ul>
+                                                <li><strong>Only test websites and systems that you own or have explicit, written authorization from the owner to test.</strong></li>
+                                                <li>Use the Services for legitimate security assessment and improvement purposes.</li>
+                                                <li>Comply with all applicable laws in your jurisdiction.</li>
+                                            </ul>
+                                            <p><strong>You Agree NOT To:</strong></p>
+                                            <ul>
+                                                <li>Test any system without clear, documented authorization.</li>
+                                                <li>Use our tools for any malicious, illegal, or fraudulent activity.</li>
+                                                <li>Disrupt, compromise, or attack our infrastructure or the infrastructure of others.</li>
+                                                <li>Share your account credentials or misuse the platform in any way.</li>
+                                            </ul>
+
+                                            <h6>5. Upholding a Secure & Ethical Platform</h6>
+                                            <p>To protect the integrity of our platform and our users, we maintain logs of activity. These logs are used to:</p>
+                                            <ul>
+                                                <li><strong>Prevent Abuse:</strong> Detect and stop malicious activity on our platform.</li>
+                                                <li><strong>Promote Ethical Use:</strong> Provide an auditable trail to verify that testing is authorized.</li>
+                                                <li><strong>Resolve Issues:</strong> Assist in troubleshooting and clarifying the scope of testing if questions arise.</li>
+                                            </ul>
+                                            <p>We treat these logs as confidential and access is strictly controlled.</p>
+
+                                            <h6>6. Your Responsibility and Liability</h6>
+                                            <p>You understand that security testing involves risks. You are solely responsible for your use of our Services and the consequences of your testing activities.</p>
+                                            <p><strong>Indemnification:</strong> You agree to defend and indemnify us from any claims, damages, or losses resulting from your violation of these Terms, your misuse of the Services, or your failure to obtain proper authorization for your testing.</p>
+
+                                            <h6>7. Disclaimer of Warranties</h6>
+                                            <p>Our Services are provided "as is" and "as available." We disclaim all warranties, express or implied, to the fullest extent permitted by law, including warranties of merchantability or fitness for a particular purpose.</p>
+
+                                            <h6>8. Limitation of Liability</h6>
+                                            <p>To the maximum extent permitted by law, we shall not be liable for any indirect, incidental, special, or consequential damages resulting from your use or inability to use our Services.</p>
+
+                                            <h6>9. Termination</h6>
+                                            <p>We may suspend or terminate your access to the Services immediately if you breach these Terms.</p>
+
+                                            <h6>10. Governing Law & Changes</h6>
+                                            <p>These Terms are governed by the laws of [State/Country]. We may update these Terms and will notify you of material changes. Continued use constitutes acceptance.</p>
+
+                                            <h6>11. Contact Us</h6>
+                                            <p>For questions about these Terms, please contact us at [Insert Contact Email/Form Link].</p>
+
+                                            <div class="alert alert-warning small mt-4">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                <strong>Please Note:</strong> This is a legally binding agreement. By checking the box, you acknowledge that you have read, understood, and agree to be bound by these terms.
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="d-grid">
                             {{ form.submit(class="btn btn-success btn-lg") }}

@@ -83,14 +83,14 @@ function initializeScanner() {
     }
     
     // Category and Risk filters for results page
-    const categoryButtons = document.querySelectorAll('[data-category]');
+    const categoryButtons = document.querySelectorAll('.btn-group [data-category]');
     categoryButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             setCategory(this.getAttribute('data-category'));
         });
     });
     
-    const riskButtons = document.querySelectorAll('[data-risk]');
+    const riskButtons = document.querySelectorAll('.btn-group [data-risk]');
     riskButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             setRisk(this.getAttribute('data-risk'));
@@ -1164,7 +1164,19 @@ function filterVulnerabilities() {
         rows.forEach(row => {
             const rowRisk = row.dataset.risk;
             const categoryMatch = currentCategory === 'all' || catName.toLowerCase().replace(/\s+/g, '-') === currentCategory;
-            const riskMatch = currentRisk === 'all' || rowRisk === currentRisk;
+            let riskMatch;
+            if (currentRisk === 'other') {
+                // Show only risks that are not high, medium, low, critical, or info
+                riskMatch = (
+                    rowRisk !== 'high' &&
+                    rowRisk !== 'medium' &&
+                    rowRisk !== 'low' &&
+                    rowRisk !== 'critical' &&
+                    rowRisk !== 'info'
+                );
+            } else {
+                riskMatch = currentRisk === 'all' || rowRisk === currentRisk;
+            }
             if (categoryMatch && riskMatch) {
                 row.style.display = 'table-row';
                 hasVisible = true;

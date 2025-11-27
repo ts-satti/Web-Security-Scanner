@@ -10,9 +10,10 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 import threading
+from flask_migrate import Migrate
 
 from config import config
-from models import db, User, Scan
+from models import db, User, Scan, Vulnerability
 from utils.security import SecurityUtils
 from utils.validators import InputValidators
 from utils.helpers import progress_manager
@@ -22,6 +23,7 @@ from auth import login_route, register_route, logout_route, login_manager
 
 # Global dictionaries to track running scans
 running_scans = {}
+
 
 def create_app(environment='development'):
     """Application factory pattern"""
@@ -33,6 +35,8 @@ def create_app(environment='development'):
     
     # Initialize extensions
     db.init_app(app)
+    # Initialize Flask-Migrate
+    migrate = Migrate(app, db)
     
     # Setup login manager
     login_manager.init_app(app)
@@ -64,22 +68,26 @@ def create_app(environment='development'):
         total_vulnerabilities = sum(s.vulnerabilities_count or 0 for s in all_scans)
         
         # Calculate vulnerabilities by severity
-        high_vulns = 0
-        medium_vulns = 0
-        low_vulns = 0
+        vuln_counts = {
+            'Critical': 0,
+            'High': 0,
+            'Medium': 0,
+            'Low': 0,
+            'Info': 0,
+            'Other': 0
+        }
 
         for scan in all_scans:
             if scan.status == 'completed' and scan.results:
                 results = scan.get_results()
                 vulnerabilities = results.get('vulnerabilities', [])
                 for vuln in vulnerabilities:
-                    risk_level = vuln.get('risk_level', '')
-                    if risk_level == 'High':
-                        high_vulns += 1
-                    elif risk_level == 'Medium':
-                        medium_vulns += 1
-                    elif risk_level == 'Low':
-                        low_vulns += 1
+                    risk_level = vuln.get('risk_level', 'Other')
+                    if risk_level in vuln_counts:
+                        vuln_counts[risk_level] += 1
+                    else:
+                        vuln_counts['Other'] += 1
+                     
         
         # Calculate success rate
         success_rate = round((len(completed_scans) / total_scans * 100)) if total_scans > 0 else 0
@@ -92,9 +100,12 @@ def create_app(environment='development'):
             'completed_scans': len(completed_scans),
             'active_scans': len(active_scans),
             'total_vulnerabilities': total_vulnerabilities,
-            'high_vulnerabilities': high_vulns,
-            'medium_vulnerabilities': medium_vulns,
-            'low_vulnerabilities': low_vulns,
+            'critical_vulnerabilities': vuln_counts['Critical'],
+            'high_vulnerabilities': vuln_counts['High'],
+            'medium_vulnerabilities': vuln_counts['Medium'],
+            'low_vulnerabilities': vuln_counts['Low'],
+            'info_vulnerabilities': vuln_counts['Info'],
+            'other_vulnerabilities': vuln_counts['Other'],
             'success_rate': success_rate,
             'avg_vulnerabilities': avg_vulns
         }
@@ -105,11 +116,37 @@ def create_app(environment='development'):
         return render_template('dashboard.html', scans=recent_scans, stats=stats)
 
     @app.route('/scans')
-    @login_required
     def scans_page():
-        """Dedicated scan page with scan form and live progress"""
-        scans = Scan.query.filter(Scan.user_id == current_user.id, Scan.status != 'discarded').order_by(Scan.created_at.desc()).limit(10).all()
-        return render_template('scan.html', scans=scans)
+        return render_template('scans.html')
+
+    @app.route('/profile')
+    @login_required
+    def profile():
+        return render_template('profile.html')  
+
+    @app.route('/dashboard-charts-data')
+    @login_required
+    def dashboard_charts_data():
+        """Return data for dashboard charts: vulnerabilities by type and by severity."""
+        user_scan_ids = [s.id for s in Scan.query.filter(Scan.user_id == current_user.id, Scan.status != 'discarded').all()]
+        if not user_scan_ids:
+            return jsonify({
+                'by_type': {},
+                'by_severity': {}
+            })
+        from models import Vulnerability
+        vulns = Vulnerability.query.filter(Vulnerability.scan_id.in_(user_scan_ids)).all()
+        by_type = {}
+        for v in vulns:
+            by_type[v.category] = by_type.get(v.category, 0) + 1
+        by_severity = {'Critical': 0, 'High': 0, 'Medium': 0, 'Low': 0, 'Info': 0, 'Other': 0}
+        for v in vulns:
+            level = v.risk_level if v.risk_level in by_severity else 'Other'
+            by_severity[level] += 1
+        return jsonify({
+            'by_type': by_type,
+            'by_severity': by_severity
+        })
 
     @app.route('/recent-scans')
     @login_required
@@ -148,22 +185,25 @@ def create_app(environment='development'):
         total_vulnerabilities = sum((s.vulnerabilities_count or 0) for s in scans)
 
         # Calculate vulnerabilities by severity
-        high_vulns = 0
-        medium_vulns = 0
-        low_vulns = 0
+        vuln_counts = {
+            'Critical': 0,
+            'High': 0,
+            'Medium': 0,
+            'Low': 0,
+            'Info': 0,
+            'Other': 0
+        }
 
         for scan in scans:
             if scan.status == 'completed' and scan.results:
                 results = scan.get_results()
                 vulnerabilities = results.get('vulnerabilities', [])
                 for vuln in vulnerabilities:
-                    risk_level = vuln.get('risk_level', '')
-                    if risk_level == 'High':
-                        high_vulns += 1
-                    elif risk_level == 'Medium':
-                        medium_vulns += 1
-                    elif risk_level == 'Low':
-                        low_vulns += 1
+                    risk_level = vuln.get('risk_level', 'Other')
+                    if risk_level in vuln_counts:
+                        vuln_counts[risk_level] += 1
+                    else:
+                        vuln_counts['Other'] += 1
 
         success_rate = round((completed_scans / total_scans * 100)) if total_scans > 0 else 0
         avg_vulns = round((total_vulnerabilities / completed_scans), 1) if completed_scans > 0 else 0
@@ -173,9 +213,12 @@ def create_app(environment='development'):
             'completed_scans': completed_scans,
             'active_scans': active_scans,
             'total_vulnerabilities': total_vulnerabilities,
-            'high_vulnerabilities': high_vulns,
-            'medium_vulnerabilities': medium_vulns,
-            'low_vulnerabilities': low_vulns,
+            'critical_vulnerabilities': vuln_counts['Critical'],
+            'high_vulnerabilities': vuln_counts['High'],
+            'medium_vulnerabilities': vuln_counts['Medium'],
+            'low_vulnerabilities': vuln_counts['Low'],
+            'info_vulnerabilities': vuln_counts['Info'],
+            'other_vulnerabilities': vuln_counts['Other'],
             'success_rate': success_rate,
             'avg_vulnerabilities': avg_vulns
         })
@@ -515,9 +558,11 @@ def create_app(environment='development'):
                     for i, vuln in enumerate(vulns, 1):
                         # Risk level color
                         risk_level = vuln.get('risk_level', 'Unknown')
-                        risk_color = colors.red if risk_level == 'High' else \
+                        risk_color = colors.darkred if risk_level == 'Critical' else \
+                                    colors.red if risk_level == 'High' else \
                                     colors.orange if risk_level == 'Medium' else \
-                                    colors.green if risk_level == 'Low' else colors.grey
+                                    colors.green if risk_level == 'Low' else \
+                                    colors.blue if risk_level == 'Info' else colors.grey
                         
                         # Vulnerability details
                         story.append(Paragraph(f"{i}. {vuln.get('title', 'Unknown')} - <font color='{risk_color.hexval()}'>{risk_level}</font>", styles['Normal']))
@@ -623,6 +668,28 @@ def create_app(environment='development'):
                     scan.completed_at = datetime.utcnow()
 
                 db.session.commit()
+
+                # Automatically save vulnerabilities to Vulnerability table
+                if scan.status == 'completed':
+                    from models import Vulnerability
+                    vulns = results.get('vulnerabilities', [])
+                    for v in vulns:
+                        vuln = Vulnerability(
+                            scan_id=scan.id,
+                            category=v.get('category', ''),
+                            risk_level=v.get('risk_level', ''),
+                            title=v.get('title', ''),
+                            description=v.get('description', ''),
+                            location=v.get('location', ''),
+                            payload=v.get('payload', ''),
+                            evidence=v.get('evidence', ''),
+                            recommendation=v.get('recommendation', ''),
+                            cwe_id=v.get('cwe_id', ''),
+                            cvss_score=v.get('cvss_score', 0.0)
+                        )
+                        db.session.add(vuln)
+                    db.session.commit()
+                    print(f"[+] Saved {len(vulns)} vulnerabilities to Vulnerability table")
 
                 print(f"[+] Scan {scan_id} completed with status: {scan.status}")
                 

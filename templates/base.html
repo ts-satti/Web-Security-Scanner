@@ -24,46 +24,46 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">
+                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
                             <i class="fas fa-home"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'scans_page' %}active{% endif %}" href="{{ url_for('scans_page') }}">
+                            <i class="fas fa-search"></i> Scans
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'about' %}active{% endif %}" href="{{ url_for('about') }}">
+                            <i class="fas fa-info-circle"></i> About
                         </a>
                     </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
                             <i class="fas fa-tachometer-alt"></i> Dashboard
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('scans_page') }}">
-                            <i class="fas fa-search"></i> Scans
-                        </a>
-                    </li>
                     {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('about') }}">
-                            <i class="fas fa-info-circle"></i> About
-                        </a>
-                    </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user"></i> {{ current_user.email }}
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                            <li><a class="dropdown-item" href="/profile">Profile</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('logout_route') }}">Logout</a></li>
                         </ul>
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('login_route') }}">
+                        <a class="nav-link {% if request.endpoint == 'login_route' %}active{% endif %}" href="{{ url_for('login_route') }}">
                             <i class="fas fa-sign-in-alt"></i> Sign In
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('register_route') }}">
+                        <a class="nav-link {% if request.endpoint == 'register_route' %}active{% endif %}" href="{{ url_for('register_route') }}">
                             <i class="fas fa-user-plus"></i> Sign Up
                         </a>
                     </li>

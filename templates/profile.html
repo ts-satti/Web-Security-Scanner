@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-10 col-lg-8 col-xl-7">
+            <div class="profile-hero mb-4 p-4 text-center text-white position-relative" style="background: linear-gradient(90deg, #3a7bd5 0%, #00d2ff 100%); border-radius: 2rem;">
+                <div class="d-flex flex-column align-items-center justify-content-center">
+                    <div class="profile-avatar mb-3">
+                        <span class="avatar-circle bg-white text-primary fw-bold d-flex align-items-center justify-content-center" style="width: 110px; height: 110px; font-size: 3rem; border-radius: 50%; border: 5px solid #fff; box-shadow: 0 2px 16px rgba(0,0,0,0.10);">
+                            {{ current_user.firstname[0]|upper }}{{ current_user.lastname[0]|upper }}
+                        </span>
+                    </div>
+                    <h1 class="fw-bold mb-1">{{ current_user.firstname }} {{ current_user.lastname }}</h1>
+                    <p class="mb-0 small text-white-50">Member since {{ current_user.created_at.strftime('%B %d, %Y') if current_user.created_at else '' }}</p>
+                </div>
+            </div>
+                        <div class="profile-info-grid bg-light px-4 py-4 mb-4 rounded-4 shadow-sm">
+                                <div class="alert alert-info mb-4 text-center small" role="alert">
+                                    <i class="fas fa-shield-alt me-2"></i>
+                                    <strong>Note:</strong> Your email address and mobile number are private and visible only to you.
+                                </div>
+                <div class="row g-4">
+                    <div class="col-12 col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-envelope fa-lg text-primary me-3"></i>
+                            <div>
+                                <div class="fw-semibold">Email</div>
+                                <div class="text-muted small">{{ current_user.email }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-phone fa-lg text-primary me-3"></i>
+                            <div>
+                                <div class="fw-semibold">Mobile</div>
+                                <div class="text-muted small">{{ current_user.mobile }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-id-badge fa-lg text-primary me-3"></i>
+                            <div>
+                                <div class="fw-semibold">First Name</div>
+                                <div class="text-muted small">{{ current_user.firstname }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-id-badge fa-lg text-primary me-3"></i>
+                            <div>
+                                <div class="fw-semibold">Last Name</div>
+                                <div class="text-muted small">{{ current_user.lastname }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                    </a>
+                    <a href="{{ url_for('logout_route') }}" class="btn btn-danger">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    .profile-avatar .avatar-circle {
+        background: #fff;
+        color: #3a7bd5;
+        border: 5px solid #fff;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.10);
+        transition: none !important;
+    }
+    .profile-avatar .avatar-circle:hover,
+    .profile-avatar .avatar-circle:focus {
+        background: #fff !important;
+        color: #3a7bd5 !important;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.10) !important;
+        cursor: default !important;
+        outline: none !important;
+    }
+    .profile-hero {
+        box-shadow: 0 4px 32px rgba(58,123,213,0.10);
+    }
+    .profile-info-grid {
+        border-radius: 1.5rem;
+        border: none;
+    }
+</style>
+{% endblock %}

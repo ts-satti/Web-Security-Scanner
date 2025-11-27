@@ -122,18 +122,42 @@
                             <button type="button" class="btn btn-outline-primary active" data-risk="all" onclick="setRisk('all')">
                                 All Risks
                             </button>
-                            {% set high_count = results.vulnerabilities|selectattr('risk_level', 'equalto', 'High')|list|length %}
+                            {% set risk_levels = results.vulnerabilities|map(attribute='risk_level')|list %}
+                            {% set high_count = risk_levels|select('equalto', 'High')|list|length %}
+                            {% set medium_count = risk_levels|select('equalto', 'Medium')|list|length %}
+                            {% set low_count = risk_levels|select('equalto', 'Low')|list|length %}
+                            {% set critical_count = risk_levels|select('equalto', 'Critical')|list|length %}
+                            {% set info_count = risk_levels|select('equalto', 'Info')|list|length %}
+                            {% set unique_risks = risk_levels|unique|list %}
+                            {% set standard_risks = ['High', 'Medium', 'Low'] %}
+                            {% set extra_risks = unique_risks|reject('in', standard_risks)|list %}
+                            {% set show_critical = 'Critical' in unique_risks %}
+                            {% set show_info = 'Info' in unique_risks %}
+                            {% if show_critical %}
+                            <button type="button" class="btn btn-outline-dark" data-risk="critical" onclick="setRisk('critical')">
+                                Critical ({{ critical_count }})
+                            </button>
+                            {% endif %}
                             <button type="button" class="btn btn-outline-danger" data-risk="high" onclick="setRisk('high')">
                                 High ({{ high_count }})
                             </button>
-                            {% set medium_count = results.vulnerabilities|selectattr('risk_level', 'equalto', 'Medium')|list|length %}
                             <button type="button" class="btn btn-outline-warning" data-risk="medium" onclick="setRisk('medium')">
                                 Medium ({{ medium_count }})
                             </button>
-                            {% set low_count = results.vulnerabilities|selectattr('risk_level', 'equalto', 'Low')|list|length %}
                             <button type="button" class="btn btn-outline-info" data-risk="low" onclick="setRisk('low')">
                                 Low ({{ low_count }})
                             </button>
+                            {% if show_info %}
+                            <button type="button" class="btn btn-outline-secondary" data-risk="info" onclick="setRisk('info')">
+                                Info ({{ info_count }})
+                            </button>
+                            {% endif %}
+                            {% set other_count = risk_levels|reject('in', ['High', 'Medium', 'Low', 'Critical', 'Info'])|list|length %}
+                            {% if other_count > 0 %}
+                            <button type="button" class="btn btn-outline-secondary" data-risk="other" onclick="setRisk('other')">
+                                Other ({{ other_count }})
+                            </button>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -173,8 +197,12 @@
                                                             <span class="badge bg-warning">Medium</span>
                                                         {% elif vulnerability.risk_level == 'Low' %}
                                                             <span class="badge bg-info">Low</span>
+                                                        {% elif vulnerability.risk_level == 'Critical' %}
+                                                            <span class="badge bg-dark">Critical</span>
+                                                        {% elif vulnerability.risk_level == 'Info' %}
+                                                            <span class="badge bg-secondary">Info</span>
                                                         {% else %}
-                                                            <span class="badge bg-light text-dark">Info</span>
+                                                            <span class="badge bg-light text-dark">{{ vulnerability.risk_level }}</span>
                                                         {% endif %}
                                                     </td>
                                                     <td>
@@ -206,9 +234,20 @@
                                                             <div class="row">
                                                                 <div class="col-md-6">
                                                                     <strong>Risk Level:</strong> 
-                                                                    <span class="badge bg-{{ 'danger' if vulnerability.risk_level == 'High' else 'warning' if vulnerability.risk_level == 'Medium' else 'info' if vulnerability.risk_level == 'Low' else 'secondary' }}">
-                                                                        {{ vulnerability.risk_level }}
-                                                                    </span><br>
+                                                                    {% if vulnerability.risk_level == 'Critical' %}
+                                                                        <span class="badge bg-dark">Critical</span>
+                                                                    {% elif vulnerability.risk_level == 'High' %}
+                                                                        <span class="badge bg-danger">High</span>
+                                                                    {% elif vulnerability.risk_level == 'Medium' %}
+                                                                        <span class="badge bg-warning">Medium</span>
+                                                                    {% elif vulnerability.risk_level == 'Low' %}
+                                                                        <span class="badge bg-info">Low</span>
+                                                                    {% elif vulnerability.risk_level == 'Info' %}
+                                                                        <span class="badge bg-secondary">Info</span>
+                                                                    {% else %}
+                                                                        <span class="badge bg-light text-dark">{{ vulnerability.risk_level }}</span>
+                                                                    {% endif %}
+                                                                    <br>
                                                                     <strong>Category:</strong> {{ vulnerability.category }}<br>
                                                                     <strong>Location:</strong> {{ vulnerability.location }}<br>
                                                                     {% if vulnerability.payload %}

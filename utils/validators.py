@@ -14,7 +14,7 @@ class InputValidators:
             return False, "Invalid email format"
         
         return True, "Email is valid"
-    
+        
     @staticmethod
     def validate_password(password):
         """Validate password strength"""

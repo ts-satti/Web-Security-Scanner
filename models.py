@@ -8,13 +8,19 @@ db = SQLAlchemy()
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
-    
+
     id = db.Column(db.Integer, primary_key=True)
+    firstname = db.Column(db.String(50), nullable=False)
+    lastname = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    mobile = db.Column(db.String(20), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(128), nullable=False)
+    ip_address = db.Column(db.String(45))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
-    
+    agreed_privacy_policy = db.Column(db.Boolean, default=False, nullable=False)
+    agreed_privacy_policy_at = db.Column(db.DateTime)
+
     # Relationships
     scans = db.relationship('Scan', backref='user', lazy='dynamic', cascade='all, delete-orphan')
     
@@ -88,17 +94,12 @@ class Scan(db.Model):
         return high_count
     
     def validate_results_integrity(self):
-        """Validate that results data is consistent - UPDATED: Removed Critical"""
+        """Validate that results data is consistent"""
         results = self.get_results()
         vulnerabilities = results.get('vulnerabilities', [])
         
-        # Count by risk level (REMOVED Critical)
-        risk_counts = {
-            'High': 0, 
-            'Medium': 0,
-            'Low': 0,
-            'Info': 0
-        }
+        # Count by risk level (includes all risk levels dynamically)
+        risk_counts = {}
         
         for vuln in vulnerabilities:
             risk_level = vuln.get('risk_level', 'Info')

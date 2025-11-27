@@ -6,6 +6,7 @@ from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, Length
 from models import User, db
 from utils.validators import InputValidators
+import phonenumbers
 
 # Forms
 class LoginForm(FlaskForm):
@@ -14,8 +15,12 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Login')
 
 class RegisterForm(FlaskForm):
+    firstname = StringField('First Name', validators=[DataRequired(), Length(max=50)])
+    lastname = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
     email = StringField('Email', validators=[DataRequired(), Email()])
+    mobile = StringField('Mobile Number', validators=[DataRequired(), Length(max=20)])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), Length(min=6)])
     submit = SubmitField('Register')
 
 # Route functions (not blueprint routes)
@@ -47,28 +52,63 @@ def register_route():
         if not is_valid:
             flash(email_msg, 'error')
             return render_template('register.html', form=form)
-        
+
         # Validate password
         is_valid, password_msg = InputValidators.validate_password(form.password.data)
         if not is_valid:
             flash(password_msg, 'error')
             return render_template('register.html', form=form)
-        
-        # Check if user exists
-        if User.query.filter_by(email=form.email.data).first():
-            flash('Email already registered', 'error')
+
+        # Confirm password match
+        if form.password.data != form.confirm_password.data:
+            flash('Passwords do not match.', 'error')
             return render_template('register.html', form=form)
-        
-        # Create new user
-        new_user = User(email=form.email.data)
+
+        # Check if user exists
+        if User.query.filter((User.email == form.email.data) | (User.mobile == form.mobile.data)).first():
+            flash('Email or mobile number already registered', 'error')
+            return render_template('register.html', form=form)
+
+
+        # Validate mobile number with country code
+        country_code = request.form.get('country_code')
+        mobile_number = form.mobile.data
+        full_number = f"{country_code}{mobile_number}"
+        try:
+            parsed_number = phonenumbers.parse(full_number, None)
+            if not phonenumbers.is_valid_number(parsed_number):
+                flash('Invalid mobile number for the selected country code.', 'error')
+                return render_template('register.html', form=form)
+        except Exception:
+            flash('Invalid mobile number format.', 'error')
+            return render_template('register.html', form=form)
+
+        # Check if mobile number already exists
+        if User.query.filter_by(mobile=full_number).first():
+            flash('This mobile number is already registered. Please use a different number.', 'error')
+            return render_template('register.html', form=form)
+
+        # Create new user with all fields and IP address
+        ip_address = request.remote_addr
+
+        from datetime import datetime
+        new_user = User(
+            firstname=form.firstname.data,
+            lastname=form.lastname.data,
+            email=form.email.data,
+            mobile=full_number,
+            ip_address=ip_address,
+            agreed_privacy_policy=True,
+            agreed_privacy_policy_at=datetime.utcnow()
+        )
         new_user.set_password(form.password.data)
-        
+
         db.session.add(new_user)
         db.session.commit()
-        
+
         flash('Registration successful! Please login.', 'success')
         return redirect(url_for('login_route'))
-    
+
     return render_template('register.html', form=form)
 
 def logout_route():
@@ -78,7 +118,7 @@ def logout_route():
 
 # Login manager setup
 login_manager = LoginManager()
-login_manager.login_view = 'login'
+login_manager.login_view = 'login_route'
 login_manager.login_message = 'Please log in to access this page.'
 
 @login_manager.user_loader
